@@ -1,10 +1,14 @@
 # node-fs-updater
 
 [![Build Status](https://travis-ci.org/broccolijs/node-fs-updater.svg?branch=master)](https://travis-ci.org/broccolijs/node-fs-updater)
+[![Build status](https://ci.appveyor.com/api/projects/status/5sb039bjee4q3obw?svg=true)](https://ci.appveyor.com/project/joliss/node-fs-updater)
+
 
 Repeatedly write an in-memory directory tree to disk, with incremental updating.
 
 ## Installation
+
+This package requires Node version 6.0.0 or newer.
 
 ```bash
 npm install --save fs-updater
