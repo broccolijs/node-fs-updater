@@ -50,6 +50,10 @@ class File extends String {
   }
 }
 
+if (!(new File("", true) instanceof File)) {
+  throw new Error("The fs-updater package requires Node 6.0.0 or newer.");
+}
+
 function makeFSObject(p) {
   return makeFSObjectCleanedUp(cleanUpPath(p));
 }
