@@ -1,7 +1,7 @@
 {
   "name": "fs-updater",
   "description": "Incrementally update a directory based on an in-memory representation.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Jo Liss <joliss42@gmail.com>",
   "main": "index.js",
   "license": "MIT",

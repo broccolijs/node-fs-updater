@@ -1,5 +1,7 @@
 # master
 
+# 1.0.1
+
 * Produce helpful error message when running on Node 4
 
 # 1.0.0
