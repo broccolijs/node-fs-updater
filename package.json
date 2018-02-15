@@ -1,0 +1,35 @@
+{
+  "name": "fs-updater",
+  "description": "Incrementally update a directory based on an in-memory representation.",
+  "version": "0.0.0",
+  "author": "Jo Liss <joliss42@gmail.com>",
+  "main": "index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/broccolijs/node-fs-updater"
+  },
+  "keywords": [
+    "fs"
+  ],
+  "files": [
+    "index.js"
+  ],
+  "dependencies": {
+    "can-symlink": "^1.0.0",
+    "clean-up-path": "^1.0.0",
+    "heimdalljs": "^0.2.5",
+    "heimdalljs-logger": "^0.1.9",
+    "rimraf": "^2.4.3"
+  },
+  "devDependencies": {
+    "chai": "^3.4.0",
+    "fixturify": "^0.3.4",
+    "mocha": "^2.3.3",
+    "mocha-eslint": "^3.0.1"
+  },
+  "scripts": {
+    "test": "mocha",
+    "test:debug": "mocha debug"
+  }
+}
