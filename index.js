@@ -40,13 +40,19 @@ class Directory extends String {
 }
 
 class File extends String {
-  constructor(p, cleanedUp) {
-    if (!cleanedUp) p = cleanUpPath(p);
+  constructor(p, _cleanedUp, _stats) {
+    if (!_cleanedUp) p = cleanUpPath(p);
     super(p);
+    if (_stats != null) this._stats = _stats;
   }
 
   inspect() {
     return `[File: '${this.valueOf()}']`;
+  }
+
+  stat() {
+    if (this._stats != null) return this._stats;
+    return (this._stats = fs.statSync(this.valueOf()));
   }
 }
 
@@ -61,7 +67,7 @@ function makeFSObject(p) {
 function makeFSObjectCleanedUp(p) {
   let stats = fs.lstatSync(p);
   if (stats.isDirectory()) return new Directory(p, true);
-  if (stats.isFile()) return new File(p, true);
+  if (stats.isFile()) return new File(p, true, stats);
   // Return FSObject pointing to target of symbolic link. This is so you can use
   // the returned FSObject to create a symlink without symlink indirection
   // growing out of control.
@@ -134,17 +140,28 @@ const ERROR_STATE = Symbol("error");
 
 function update(outputPath, oldState, newState, options) {
   // Identical objects are presumed to have no changes
-  if (newState === oldState) return;
+  if (oldState === newState) return;
   // Unchanged symlinks do not need updating
-  if (options.canSymlink &&
-    ((newState instanceof File && oldState instanceof File) ||
-      (newState instanceof Directory && oldState instanceof Directory)) &&
-    newState.valueOf() === oldState.valueOf()) return;
+  if (
+    options.canSymlink &&
+    ((oldState instanceof File && newState instanceof File) ||
+      (oldState instanceof Directory && newState instanceof Directory)) &&
+    oldState.valueOf() === newState.valueOf()
+  )
+    return;
+  // If we cannot symlink, then if we have kept the old file stats around in
+  // oldState._stats, we can skip re-copying if the file is unchanged.
+  if (
+    !options.canSymlink &&
+    (oldState instanceof File && newState instanceof File) &&
+    oldState.valueOf() === newState.valueOf() &&
+    oldState._stats != null &&
+    fileStatsEqual(oldState._stats, newState.stat())
+  )
+    return;
 
   if (
-    !(
-      newState instanceof DirectoryIndex && oldState instanceof DirectoryIndex
-    )
+    !(newState instanceof DirectoryIndex && oldState instanceof DirectoryIndex)
   ) {
     // Delete old state
     if (
@@ -189,7 +206,7 @@ function update(outputPath, oldState, newState, options) {
     if (options.canSymlink) {
       fs.symlinkSync(newState.valueOf(), outputPath, "file");
     } else {
-      let stats = fs.statSync(newState.valueOf());
+      let stats = newState.stat();
       let contents = fs.readFileSync(newState.valueOf());
       fs.writeFileSync(outputPath, contents, {
         flag: "wx",
@@ -203,6 +220,16 @@ function update(outputPath, oldState, newState, options) {
         "Expected File, Directory or DirectoryIndex, got " + newState
       );
   }
+}
+
+function fileStatsEqual(a, b) {
+  // Note that stats.mtimeMs is only available as of Node 9
+  return (
+    a.ino === b.ino &&
+    a.mtime.getTime() === b.mtime.getTime() &&
+    a.size === b.size &&
+    a.mode === b.mode
+  );
 }
 
 FSUpdater.DirectoryIndex = DirectoryIndex;

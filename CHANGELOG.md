@@ -1,5 +1,7 @@
 # master
 
+* Do not re-copy unchanged files when canSymlink is false
+
 # 1.0.2
 
 * Do not recreate symlink if target is unchanged
