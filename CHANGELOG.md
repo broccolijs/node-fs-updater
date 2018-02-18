@@ -1,5 +1,7 @@
 # master
 
+# 1.0.2
+
 * Do not recreate symlink if target is unchanged
 
 # 1.0.1
