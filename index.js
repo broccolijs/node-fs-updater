@@ -133,71 +133,75 @@ class FSUpdater {
 const ERROR_STATE = Symbol("error");
 
 function update(outputPath, oldState, newState, options) {
-  if (newState !== oldState) {
-    if (
-      !(
-        newState instanceof DirectoryIndex && oldState instanceof DirectoryIndex
-      )
-    ) {
-      // Delete old state
-      if (
-        oldState instanceof DirectoryIndex ||
-        (!options.canSymlink && oldState instanceof Directory)
-      ) {
-        rimraf.sync(outputPath);
-      } else if (oldState != null) {
-        // On Windows without symlink support, we unnecessarily delete and
-        // recreate unchanged files here.
-        fs.unlinkSync(outputPath);
-      }
-    }
+  // Identical objects are presumed to have no changes
+  if (newState === oldState) return;
+  // Unchanged symlinks do not need updating
+  if (options.canSymlink &&
+    ((newState instanceof File && oldState instanceof File) ||
+      (newState instanceof Directory && oldState instanceof Directory)) &&
+    newState.valueOf() === oldState.valueOf()) return;
 
-    if (newState instanceof DirectoryIndex) {
-      if (oldState instanceof DirectoryIndex) {
-        for (let mapEntry of oldState) {
-          let entryName = mapEntry[0];
-          let entryState = mapEntry[1];
-          if (newState.has(entryName)) continue;
-          update(`${outputPath}/${entryName}`, entryState, null, options);
-        }
-      } else {
-        fs.mkdirSync(outputPath);
-        oldState = new DirectoryIndex();
-      }
-      for (let mapEntry of newState) {
+  if (
+    !(
+      newState instanceof DirectoryIndex && oldState instanceof DirectoryIndex
+    )
+  ) {
+    // Delete old state
+    if (
+      oldState instanceof DirectoryIndex ||
+      (!options.canSymlink && oldState instanceof Directory)
+    ) {
+      rimraf.sync(outputPath);
+    } else if (oldState != null) {
+      fs.unlinkSync(outputPath);
+    }
+  }
+
+  if (newState instanceof DirectoryIndex) {
+    if (oldState instanceof DirectoryIndex) {
+      for (let mapEntry of oldState) {
         let entryName = mapEntry[0];
         let entryState = mapEntry[1];
-        update(
-          `${outputPath}${path.sep}${entryName}`,
-          oldState.get(entryName),
-          entryState,
-          options
-        );
-      }
-    } else if (newState instanceof Directory) {
-      if (options.canSymlink) {
-        fs.symlinkSync(newState.valueOf(), outputPath, "dir");
-      } else {
-        fs.symlinkSync(newState.valueOf(), outputPath, "junction");
-      }
-    } else if (newState instanceof File) {
-      if (options.canSymlink) {
-        fs.symlinkSync(newState.valueOf(), outputPath, "file");
-      } else {
-        let stats = fs.statSync(newState.valueOf());
-        let contents = fs.readFileSync(newState.valueOf());
-        fs.writeFileSync(outputPath, contents, {
-          flag: "wx",
-          mode: stats.mode
-        });
-        fs.utimesSync(outputPath, stats.atime, stats.mtime);
+        if (newState.has(entryName)) continue;
+        update(`${outputPath}/${entryName}`, entryState, null, options);
       }
     } else {
-      if (newState != null)
-        throw new Error(
-          "Expected File, Directory or DirectoryIndex, got " + newState
-        );
+      fs.mkdirSync(outputPath);
+      oldState = new DirectoryIndex();
     }
+    for (let mapEntry of newState) {
+      let entryName = mapEntry[0];
+      let entryState = mapEntry[1];
+      update(
+        `${outputPath}${path.sep}${entryName}`,
+        oldState.get(entryName),
+        entryState,
+        options
+      );
+    }
+  } else if (newState instanceof Directory) {
+    if (options.canSymlink) {
+      fs.symlinkSync(newState.valueOf(), outputPath, "dir");
+    } else {
+      fs.symlinkSync(newState.valueOf(), outputPath, "junction");
+    }
+  } else if (newState instanceof File) {
+    if (options.canSymlink) {
+      fs.symlinkSync(newState.valueOf(), outputPath, "file");
+    } else {
+      let stats = fs.statSync(newState.valueOf());
+      let contents = fs.readFileSync(newState.valueOf());
+      fs.writeFileSync(outputPath, contents, {
+        flag: "wx",
+        mode: stats.mode
+      });
+      fs.utimesSync(outputPath, stats.atime, stats.mtime);
+    }
+  } else {
+    if (newState != null)
+      throw new Error(
+        "Expected File, Directory or DirectoryIndex, got " + newState
+      );
   }
 }
 
