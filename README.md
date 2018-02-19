@@ -18,7 +18,101 @@ npm install --save fs-updater
 
 ```js
 let FSUpdater = require("fs-updater");
+let { File, Directory, DirectoryIndex } = FSUpdater;
+
+// output_dir must either be an empty directory or not exist at all
+let fsUpdater = new FSUpdater('./output_dir')
 ```
+
+Let's create the following directory structure, where `->` indicates a symlink
+(or a copy on Windows):
+
+```
+output_dir
+├── file -> /path/to/some/file
+├── dir1/ -> /path/to/some/dir
+└── dir2/
+    └── another_file -> /path/to/another/file
+```
+
+```js
+let dir = new DirectoryIndex([
+  ['file', new File('/path/to/some/file')],
+  ['dir1', new Directory('/path/to/some/dir')],
+  ['dir2', new DirectoryIndex([
+    ['another_file', new File('/path/to/another/file')]
+  ])]
+]);
+
+// Write it to ./output_dir
+fsUpdater.update(dir);
+```
+
+Now let's create an updated similar directory structure:
+
+```
+.
+├── file -> /path/to/some/file
+└── dir1/ -> /path/to/some/dir
+```
+
+```js
+dir = new DirectoryIndex([
+  ['file', new File('/path/to/some/file')],
+  ['dir1', new Directory('/path/to/some/dir')]
+]);
+
+// Now update output_dir incrementally
+fsUpdater.update(dir);
+```
+
+### Object re-use
+
+It is recommended that you rebuild all your `File`, `Directory` and
+`DirectoryIndex` objects from scratch each time you call `fsUpdater.update`. If
+you re-use objects, the following rules apply:
+
+First, do not mutate the objects that you pass into `FSUpdater`, or their
+sub-objects. That is, after calling `fsUpdater.update(dir)`, you must no longer
+call `dir.set(...)`.
+
+Second, you may re-use unchanged `File`, `Directory` and `DirectoryIndex`
+objects *only* if you know that the file contents they point to *recursively*
+have not changed. This is typically only the case if they point into directories
+that you control, and if those directories in turn contain no symlinks to
+outside directories under the user's control.
+
+For example, this is always OK:
+
+```js
+let file = new String('/the/file');
+fsUpdater.update(new DirectoryIndex([
+  ['file', file]
+]);
+
+// Create new File object with identical path
+file = new String('/the/file');
+fsUpdater.update(new DirectoryIndex([
+  ['file', file]
+]);
+```
+
+But this is only OK if the contents of `/the/file` have not changed between
+calls to `.update`:
+
+```js
+let file = new String('/the/file');
+fsUpdater.update(new DirectoryIndex([
+  ['file', file]
+]);
+
+// Re-use the File object
+fsUpdater.update(new DirectoryIndex([
+  ['file', file]
+]);
+```
+
+## Reference
 
 * `FSUpdater`: An object used to repeatedly update an output directory.
 
