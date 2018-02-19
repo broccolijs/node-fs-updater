@@ -1,5 +1,7 @@
 # master
 
+# 1.0.3
+
 * Do not re-copy unchanged files when canSymlink is false
 
 # 1.0.2
