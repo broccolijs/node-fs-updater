@@ -15,6 +15,9 @@
   "files": [
     "index.js"
   ],
+  "engines": {
+    "node": ">=6.0.0"
+  },
   "dependencies": {
     "can-symlink": "^1.0.0",
     "clean-up-path": "^1.0.0",
