@@ -1,5 +1,7 @@
 # master
 
+* Update dependencies
+
 # 1.0.3
 
 * Do not re-copy unchanged files when canSymlink is false
