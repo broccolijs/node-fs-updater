@@ -91,6 +91,7 @@ class FSUpdater {
     if (options == null) options = {};
     if (options.canSymlink == null) options.canSymlink = canSymlink();
     if (options.retry == null) options.retry = true;
+    this.fs = options.fs || fs;
     this.options = options;
     this._logger = loggerGen("FSUpdater");
 
@@ -108,7 +109,11 @@ class FSUpdater {
 
   _update(dir, retry) {
     if (this.state === ERROR_STATE) {
-      rimraf.sync(this.outputPath);
+      if (this.options.fs) {
+        this.fs.rmdirSync(this.outputPath, { recursive: true });
+      } else {
+        rimraf.sync(this.outputPath);
+      }
       this.state = null;
     }
 
@@ -139,6 +144,7 @@ class FSUpdater {
 const ERROR_STATE = Symbol("error");
 
 function update(outputPath, oldState, newState, options) {
+  let _fs = options.fs || fs;
   // Identical objects are presumed to have no changes
   if (oldState === newState) return;
   // Unchanged symlinks do not need updating
@@ -168,9 +174,13 @@ function update(outputPath, oldState, newState, options) {
       oldState instanceof DirectoryIndex ||
       (!options.canSymlink && oldState instanceof Directory)
     ) {
-      rimraf.sync(outputPath);
+      if (options.fs) {
+        _fs.rmdirSync(outputPath, { recursive: true });
+      } else {
+        rimraf.sync(outputPath);
+      }
     } else if (oldState != null) {
-      fs.unlinkSync(outputPath);
+      _fs.unlinkSync(outputPath);
     }
   }
 
@@ -198,21 +208,21 @@ function update(outputPath, oldState, newState, options) {
     }
   } else if (newState instanceof Directory) {
     if (options.canSymlink) {
-      fs.symlinkSync(newState.valueOf(), outputPath, "dir");
+      _fs.symlinkSync(newState.valueOf(), outputPath, "dir");
     } else {
-      fs.symlinkSync(newState.valueOf(), outputPath, "junction");
+      _fs.symlinkSync(newState.valueOf(), outputPath, "junction");
     }
   } else if (newState instanceof File) {
     if (options.canSymlink) {
-      fs.symlinkSync(newState.valueOf(), outputPath, "file");
+      _fs.symlinkSync(newState.valueOf(), outputPath, "file");
     } else {
       let stats = newState.stat();
-      let contents = fs.readFileSync(newState.valueOf());
-      fs.writeFileSync(outputPath, contents, {
+      let contents = _fs.readFileSync(newState.valueOf());
+      _fs.writeFileSync(outputPath, contents, {
         flag: "wx",
         mode: stats.mode
       });
-      fs.utimesSync(outputPath, stats.atime, stats.mtime);
+      _fs.utimesSync(outputPath, stats.atime, stats.mtime);
     }
   } else {
     if (newState != null)

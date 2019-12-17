@@ -4,6 +4,7 @@ let fs = require("fs");
 let path = require("path");
 let rimraf = require("rimraf");
 let fixturify = require("fixturify");
+let outputWrapper = require("broccoli-output-wrapper");
 let chai = require("chai"),
   expect = chai.expect;
 
@@ -215,6 +216,27 @@ describe("FSUpdater", () => {
               testUpdate(oldPair, newPair, {
                 canSymlink: canSymlink,
                 retry: false
+              });
+              testFixturesUnchanged();
+            }
+          }
+        }).timeout(0);
+
+        it("updates the output correctly with custom fs", () => {
+          let oldPairs = nestedPairsWithTwoEntries.concat(
+            lowerCaseNestedDirectoryIndexPairs
+          );
+          let newPairs = nestedPairsWithTwoEntries.concat(
+            upperCaseNestedDirectoryIndexPairs
+          );
+          // console.log(oldPairs.length * newPairs.length);
+          let customFS = outputWrapper({ outputPath: path.resolve('./') });
+          for (let oldPair of oldPairs) {
+            for (let newPair of newPairs) {
+              testUpdate(oldPair, newPair, {
+                canSymlink: canSymlink,
+                retry: false,
+                fs: customFS
               });
               testFixturesUnchanged();
             }
