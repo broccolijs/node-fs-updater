@@ -78,6 +78,20 @@ describe("FSUpdater", () => {
 
     it("must not be a symlink", () => {
       fs.symlinkSync(".", "tmp/out");
+      // This is to work around the issue in node 12. Follow the issue
+      // https://github.com/nodejs/node/issues/31231
+      let err = false;
+      try {
+        fs.rmdirSync("tmp/out");
+      } catch (e) {
+        if (e && e.code == 'ENOTDIR') {
+          err = true;
+        }
+      }
+      if (!err) {
+        fs.symlinkSync(".", "tmp/out", "junction");
+      }
+      // End Workaround
       expect(() => {
         new FSUpdater("tmp/out");
       }).to.throw();
