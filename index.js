@@ -67,15 +67,7 @@ function makeFSObject(p) {
 }
 
 function getDirectoryClass(p) {
-  if (GLOBAL_CACHE.has(p)) {
-    return GLOBAL_CACHE.get(p);
-  }
-
-  let directory = new Directory(p, true);
-
-  GLOBAL_CACHE.set(p, directory);
-
-  return directory;
+  return new Directory(p, true);
 }
 
 function getFileClass(p, stats) {
@@ -93,7 +85,7 @@ function getFileClass(p, stats) {
 function makeFSObjectCleanedUp(p, dirent) {
   if (dirent) {
     if (dirent.isDirectory()) {
-      return getDirectoryClass(p);
+      return new Directory(p, true);
     }
 
     if (dirent.isFile()) {
@@ -107,7 +99,7 @@ function makeFSObjectCleanedUp(p, dirent) {
     let stats = fs.lstatSync(p);
 
     if (stats.isDirectory()) {
-      return getDirectoryClass(p);
+      return new Directory(p, true);
     }
 
     if (stats.isFile()) {
