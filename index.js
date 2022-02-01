@@ -66,10 +66,6 @@ function makeFSObject(p) {
   return makeFSObjectCleanedUp(cleanUpPath(p));
 }
 
-function getDirectoryClass(p) {
-  return new Directory(p, true);
-}
-
 function getFileClass(p, stats) {
   if (GLOBAL_CACHE.has(p)) {
     return GLOBAL_CACHE.get(p);
