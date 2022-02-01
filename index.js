@@ -44,8 +44,12 @@ class Directory extends String {
 class File extends String {
   constructor(p, _cleanedUp, _stats) {
     if (!_cleanedUp) p = cleanUpPath(p);
+
     super(p);
-    if (_stats != null) this._stats = _stats;
+
+    if (_stats != null) {
+      this._stats = _stats;
+    }
   }
 
   inspect() {
@@ -66,6 +70,18 @@ function makeFSObject(p) {
   return makeFSObjectCleanedUp(cleanUpPath(p));
 }
 
+function getDirectoryClass(p) {
+  if (GLOBAL_CACHE.has(p)) {
+    return GLOBAL_CACHE.get(p);
+  }
+
+  let directory = new Directory(p, true);
+
+  GLOBAL_CACHE.set(p, directory);
+
+  return directory;
+}
+
 function getFileClass(p, stats) {
   if (GLOBAL_CACHE.has(p)) {
     return GLOBAL_CACHE.get(p);
@@ -81,7 +97,7 @@ function getFileClass(p, stats) {
 function makeFSObjectCleanedUp(p, dirent) {
   if (dirent) {
     if (dirent.isDirectory()) {
-      return new Directory(p, true);
+      return getDirectoryClass(p);
     }
 
     if (dirent.isFile()) {
@@ -95,7 +111,7 @@ function makeFSObjectCleanedUp(p, dirent) {
     let stats = fs.lstatSync(p);
 
     if (stats.isDirectory()) {
-      return new Directory(p, true);
+      return getDirectoryClass(p);
     }
 
     if (stats.isFile()) {
