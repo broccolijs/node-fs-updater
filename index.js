@@ -11,6 +11,8 @@ let loggerGen = require("heimdalljs-logger");
 let cleanUpResolvedPath = cleanUpPath.cleanUpResolvedPath;
 let isResolved = cleanUpPath.isResolved;
 
+const GLOBAL_CACHE = new Map();
+
 class DirectoryIndex extends Map {}
 
 class Directory extends String {
@@ -68,14 +70,38 @@ function makeFSObject(p) {
   return makeFSObjectCleanedUp(cleanUpPath(p));
 }
 
+function getDirectoryClass(p) {
+  if (GLOBAL_CACHE.has(p)) {
+    return GLOBAL_CACHE.get(p);
+  }
+
+  let directory = new Directory(p, true);
+
+  GLOBAL_CACHE.set(p, directory);
+
+  return directory;
+}
+
+function getFileClass(p, stats) {
+  if (GLOBAL_CACHE.has(p)) {
+    return GLOBAL_CACHE.get(p);
+  }
+
+  let directory = new File(p, true, stats);
+
+  GLOBAL_CACHE.set(p, directory);
+
+  return directory;
+}
+
 function makeFSObjectCleanedUp(p, dirent) {
   if (dirent) {
     if (dirent.isDirectory()) {
-      return new Directory(p, true);
+      return getDirectoryClass(p);
     }
 
     if (dirent.isFile()) {
-      return new File(p, true);
+      return getFileClass(p);
     }
 
     if (!dirent.isSymbolicLink()) {
@@ -85,11 +111,11 @@ function makeFSObjectCleanedUp(p, dirent) {
     let stats = fs.lstatSync(p);
 
     if (stats.isDirectory()) {
-      return new Directory(p, true);
+      return getDirectoryClass(p);
     }
 
     if (stats.isFile()) {
-      return new File(p, true, stats);
+      return getFileClass(p, stats);
     }
     // Return FSObject pointing to target of symbolic link. This is so you can use
     // the returned FSObject to create a symlink without symlink indirection
@@ -252,7 +278,7 @@ function fileStatsEqual(a, b) {
   // Note that stats.mtimeMs is only available as of Node 9
   return (
     a.ino === b.ino &&
-    a.mtime.getTime() === b.mtime.getTime() &&
+    // a.mtime.getTime() === b.mtime.getTime() &&
     a.size === b.size &&
     a.mode === b.mode
   );
