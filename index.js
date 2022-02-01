@@ -27,8 +27,8 @@ class Directory extends String {
     if (base[base.length - 1] !== path.sep && base[base.length - 1] !== "/") {
       base += path.sep;
     }
-    for (let entry of fs.readdirSync(p).sort()) {
-      index.set(entry, new makeFSObjectCleanedUp(base + entry));
+    for (let entry of fs.readdirSync(p, { withFileTypes: true }).sort()) {
+      index.set(entry.name, new makeFSObjectCleanedUp(base + entry.name, entry));
     }
     this._index = index;
     return index;
@@ -64,15 +64,24 @@ function makeFSObject(p) {
   return makeFSObjectCleanedUp(cleanUpPath(p));
 }
 
-function makeFSObjectCleanedUp(p) {
-  let stats = fs.lstatSync(p);
-  if (stats.isDirectory()) return new Directory(p, true);
-  if (stats.isFile()) return new File(p, true, stats);
-  // Return FSObject pointing to target of symbolic link. This is so you can use
-  // the returned FSObject to create a symlink without symlink indirection
-  // growing out of control.
-  if (!stats.isSymbolicLink())
-    throw new Error("File has unexpected type: " + p);
+function makeFSObjectCleanedUp(p, dirent) {
+  if (dirent) {
+    if (dirent.isDirectory()) return new Directory(p, true);
+    if (dirent.isFile()) return new File(p, true);
+    if (!dirent.isSymbolicLink())
+      throw new Error("File has unexpected type: " + p);
+  } else {
+    let stats = fs.lstatSync(p);
+
+    if (stats.isDirectory()) return new Directory(p, true);
+    if (stats.isFile()) return new File(p, true, stats);
+    // Return FSObject pointing to target of symbolic link. This is so you can use
+    // the returned FSObject to create a symlink without symlink indirection
+    // growing out of control.
+    if (!stats.isSymbolicLink())
+      throw new Error("File has unexpected type: " + p);
+  }
+
   let target = fs.readlinkSync(p);
   if (!isResolved(target)) {
     // We expect most symlinks coming from other plugins to be resolved already,
