@@ -23,10 +23,16 @@ class Directory extends String {
   constructor(p, cleanedUp) {
     if (!cleanedUp) p = cleanUpPath(p);
     super(p);
+
+    this._isNodeModulesPackage = p.includes('node_modules');
   }
 
   getIndexSync() {
     if (this._index != null) {
+      if (this._isNodeModulesPackage) {
+        return this._index;
+      }
+
       const now = Date.now();
       const isCacheValid = (this._cacheBuildAt + CACHE_TTL) > now;
 
