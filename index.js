@@ -11,6 +11,10 @@ let loggerGen = require("heimdalljs-logger");
 let cleanUpResolvedPath = cleanUpPath.cleanUpResolvedPath;
 let isResolved = cleanUpPath.isResolved;
 
+// 5 seconds. We'll try to cache for a bit of time, to avoid scanning same files
+// in a single rebuild.
+const CACHE_TTL = 5000;
+
 const GLOBAL_CACHE = new Map();
 
 class DirectoryIndex extends Map {}
@@ -22,7 +26,15 @@ class Directory extends String {
   }
 
   getIndexSync() {
-    if (this._index != null) return this._index;
+    if (this._index != null) {
+      const now = Date.now();
+      const isCacheValid = (this._cacheBuildAt + CACHE_TTL) > now;
+
+      if (isCacheValid) {
+        return this._index;
+      }
+    }
+
     let index = new DirectoryIndex();
     let p = this.valueOf();
     let base = p;
@@ -32,6 +44,8 @@ class Directory extends String {
     for (let entry of fs.readdirSync(p, { withFileTypes: true }).sort()) {
       index.set(entry.name, new makeFSObjectCleanedUp(base + entry.name, entry));
     }
+
+    this._cacheBuildAt = Date.now();
     this._index = index;
     return index;
   }
