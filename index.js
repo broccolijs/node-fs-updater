@@ -85,11 +85,21 @@ function makeFSObjectCleanedUp(p) {
   return makeFSObjectCleanedUp(target);
 }
 
+// Cache the result of `canSymlink`. Since it uses fs methods
+// it is moderately expensive to repeat many times.
+let cachedCanSymlink = undefined;
+function checkCanSymlink() {
+  if (cachedCanSymlink === undefined) {
+    cachedCanSymlink = canSymlink();
+  }
+  return cachedCanSymlink;
+}
+
 class FSUpdater {
   constructor(outputPath, options) {
     this.outputPath = outputPath;
     if (options == null) options = {};
-    if (options.canSymlink == null) options.canSymlink = canSymlink();
+    if (options.canSymlink == null) options.canSymlink = checkCanSymlink();
     if (options.retry == null) options.retry = true;
     this.options = options;
     this._logger = loggerGen("FSUpdater");
